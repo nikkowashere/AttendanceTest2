@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Attendance Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f0f0f0; padding: 20px; }
+    .hidden { display: none; }
+    .login, .dashboard { background: white; padding: 20px; border-radius: 10px; max-width: 600px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .student-list { margin-top: 20px; }
+    .student-list label { display: block; margin: 5px 0; }
+    .date-header { font-weight: bold; margin-top: 20px; }
+    button { margin-top: 10px; }
+
+    /* New "About Us" CSS */
+    .about-us-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .team-list p {
+      margin: 5px 0;
+    }
+    .mission-statement {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="login" class="login">
+    <h2>Login</h2>
+    <label>Role:
+      <select id="role">
+        <option value="secretary">Secretary</option>
+        <option value="teacher">Teacher</option>
+        <option value="parent">Parent</option>
+      </select>
+    </label><br>
+    <label>Username: <input type="text" id="username" /></label><br>
+    <label>Password: <input type="password" id="password" /></label><br>
+    <button onclick="login()">Login</button>
+  </div>
+
+  <div id="dashboard" class="dashboard hidden">
+    <h2>Attendance Dashboard (<span id="userRole"></span>)</h2>
+    <div id="notification" class="hidden"></div>
+
+    <div id="secretaryPanel" class="hidden">
+      <div class="date-header">Mark Attendance for Today: <span id="todayDate"></span></div>
+      <div class="student-list" id="secretaryList"></div>
+      <button onclick="saveAttendance()">Save Today's Record</button>
+    </div>
+
+    <div id="teacherPanel" class="hidden">
+      <label>Pick a Date: <input type="date" id="historyDate" /></label>
+      <button onclick="viewHistory()">View Record</button>
+      <div id="historyResult"></div>
+    </div>
+
+    <div id="parentPanel" class="hidden">
+      <div id="parentNotification"></div>
+    </div>
+
+    <button onclick="showAbout()">About Us</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+  
+  <div id="aboutUs" class="about-us-container hidden">
+      <h2>Our Team</h2>
+      <div class="team-list">
+          <p><strong>Charls Sacata</strong> - Web Developer</p>
+          <p><strong>John Cedrick Salvador</strong> - Leader</p>
+          <p><strong>Maynard Santos</strong> - Co-Researcher</p>
+          <p><strong>Jared Peñares</strong> - Co-Researcher</p>
+          <p><strong>Khayle Lozada</strong> - Co-Researcher</p>
+          <p><strong>John Narag</strong> - Co-Researcher</p>
+          <p><strong>Dave Perdon</strong> - Co-Researcher</p>
+          <p><strong>Prince Ulang</strong> - Co-Researcher</p>
+          <p><strong>Bruce Tuando</strong> - Co-Researcher</p>
+          <p><strong>James Paras</strong> - Co-Researcher</p>
+          <p><strong>Angelica Rodriguez</strong> - Co-Researcher</p>
+      </div>
+      
+      <div class="mission-statement">
+          <h2>Our Purpose</h2>
+          <p>We created this website to help students and teachers by providing a more efficient and effective way to track attendance. The traditional, old-fashioned methods are often time-consuming and inefficient. Our goal is to simplify this process, making attendance tracking easier and more convenient for everyone involved.</p>
+      </div>
+
+      <button onclick="showDashboard()">Back to Dashboard</button>
+  </div>
+
+  <script>
+    const students = ["Sacata", "Lozada", "Salvador", "Rodriguez", "Narag", "Peñares", "Perdon", "Paras", "Ulang", "Tuando", "Santos"];
+    let attendanceRecords = {};
+    let currentUser = {};
+
+    // New functions for localStorage
+    function saveAttendanceData() {
+        localStorage.setItem('attendanceRecords', JSON.stringify(attendanceRecords));
+    }
+
+    function loadAttendanceData() {
+        const storedData = localStorage.getItem('attendanceRecords');
+        if (storedData) {
+            attendanceRecords = JSON.parse(storedData);
+        }
+    }
+
+    function login() {
+      const role = document.getElementById("role").value;
+      const user = document.getElementById("username").value;
+      const pass = document.getElementById("password").value;
+
+      if ((role === "teacher" && user === "Teacher" && pass === "Teacher123") ||
+          (role === "secretary" && user === "Secretary" && pass === "Secretary123") ||
+          (role === "parent" && user === "Parent" && pass === "Parent123")) {
+        currentUser = { role, user };
+        document.getElementById("login").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        document.getElementById("userRole").textContent = role;
+        loadRolePanel(role);
+      } else {
+        alert("Invalid credentials.");
+      }
+    }
+
+    function logout() {
+      currentUser = {};
+      document.getElementById("dashboard").classList.add("hidden");
+      document.getElementById("login").classList.remove("hidden");
+    }
+
+    function loadRolePanel(role) {
+      const today = new Date().toISOString().split("T")[0];
+      document.getElementById("todayDate").textContent = today;
+      document.getElementById("secretaryPanel").classList.add("hidden");
+      document.getElementById("teacherPanel").classList.add("hidden");
+      document.getElementById("parentPanel").classList.add("hidden");
+
+      if (role === "secretary") {
+        document.getElementById("secretaryPanel").classList.remove("hidden");
+        const list = document.getElementById("secretaryList");
+        list.innerHTML = "";
+        students.forEach(name => {
+          list.innerHTML += `<label><input type="checkbox" id="${name}" /> ${name}</label>`;
+        });
+      } else if (role === "teacher") {
+        document.getElementById("teacherPanel").classList.remove("hidden");
+      } else if (role === "parent") {
+        document.getElementById("parentPanel").classList.remove("hidden");
+        const record = attendanceRecords[today];
+        let result = "<h3>Today's Attendance:</h3><ul>";
+        if (record) {
+          students.forEach(name => {
+            const status = record.present.includes(name) ? "Present" : "Absent";
+            result += `<li>${name}: ${status}</li>`;
+          });
+        } else {
+          result += "<li>No record yet.</li>";
+        }
+        result += "</ul>";
+        document.getElementById("parentNotification").innerHTML = result;
+      }
+    }
+
+    function saveAttendance() {
+      const today = new Date().toISOString().split("T")[0];
+      const present = [];
+      students.forEach(name => {
+        if (document.getElementById(name).checked) present.push(name);
+      });
+      attendanceRecords[today] = { present };
+      // New: Save the data to localStorage after updating the record
+      saveAttendanceData();
+      alert("Attendance saved for today!");
+    }
+
+    function viewHistory() {
+      const date = document.getElementById("historyDate").value;
+      const record = attendanceRecords[date];
+      const result = document.getElementById("historyResult");
+      if (!record) {
+        result.innerHTML = "<p>No records for this date.</p>";
+        return;
+      }
+      let output = `<h3>Attendance on ${date}:</h3><ul>`;
+      students.forEach(name => {
+        const status = record.present.includes(name) ? "Present" : "Absent";
+        output += `<li>${name}: ${status}</li>`;
+      });
+      output += "</ul>";
+      result.innerHTML = output;
+    }
+
+    function showAbout() {
+        document.getElementById("dashboard").classList.add("hidden");
+        document.getElementById("aboutUs").classList.remove("hidden");
+    }
+
+    function showDashboard() {
+        document.getElementById("aboutUs").classList.add("hidden");
+        document.getElementById("dashboard").classList.remove("hidden");
+        loadRolePanel(currentUser.role);
+    }
+    
+    // New: Call the load function when the script starts
+    loadAttendanceData();
+  </script>
+</body>
+</html>
